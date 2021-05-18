@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 
-# Core script.
+# Old script, check for scraps
 
 
 # Imports
