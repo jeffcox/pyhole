@@ -8,6 +8,7 @@ import requests
 # Hard codes, maybe a config file someday
 allow_url = "https://raw.githubusercontent.com/anudeepND/whitelist/master/domains/whitelist.txt"
 meta_block_url = "https://v.firebog.net/hosts/lists.php?type=tick"
+block_list = []
 
 install_dir = "/usr/local/etc/pyhole"
 dns_server = "unbound"
@@ -25,14 +26,14 @@ logging.error('And non-ASCII stuff, too, like Øresund and Malmö')
 # It should accept n URLs to concatenate
 # It can then be reused to fetch the list of lists, and the contents of each list
 
-def downloader(url):
+def list_downloader(url):
 	# Downbload requests and return results
 
 	# download the url and handle errors
 	r = requests.get(url)
 	if r.status_code == requests.codes.ok:
 		logging.debug('Looks good, proceeding')
-		return r.text
+		return r.text.split()
 	else
 		logging.error('Looks bad, stopping')
 		sys.exit("Fatal error with downloading")
@@ -54,6 +55,30 @@ def parser():
 def processor(output):
 	# Turn the list objects from the various URLs into output useable by DNS
 	# 
+
+# Download the allow list(s) and listify them for later
+allowed_domains = list_downloader(allow_url)
+print("Tried downloading allowed_domains, got a ",type(allowed_domains))
+
+# Get the list of block lists
+list_of_blocks = list_downloader(meta_block_url)
+print("Tried downloading list_of_blocks, got a ",type(list_of_blocks))
+
+# Iterate through the list of block lists
+# Jam the entries into a new deduplicated list
+for x in list_of_blocks:
+	block_list.append(list_downloader(x))
+	print("Tried downloading from ",x)
+
+# Deduplicate with set
+uniqe_block_list = set(block_list).split()
+print("Tried uniqe stuff")
+
+# Removed allowed domains
+for y in allowed_domains:
+	uniqe_block_list.remove(y)
+	print("Tried removing allows")
+
 
 
 # Try to update the tick_list of "safe" domains to block
