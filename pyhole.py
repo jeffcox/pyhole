@@ -13,7 +13,7 @@ block_list = []
 install_dir = "/usr/local/etc/pyhole"
 dns_server = "unbound"
 
-logging.basicConfig(filename='example.log', encoding='utf-8', level=logging.DEBUG)
+logging.basicConfig(filename='example.log', level=logging.DEBUG)
 logging.debug('This message should go to the log file')
 logging.info('So should this')
 logging.warning('And this, too')
@@ -34,27 +34,9 @@ def list_downloader(url):
 	if r.status_code == requests.codes.ok:
 		logging.debug('Looks good, proceeding')
 		return r.text.split()
-	else
+	else:
 		logging.error('Looks bad, stopping')
 		sys.exit("Fatal error with downloading")
-
-def parser():
-	# Take the various meta lists and lists and concatenate and deduplicate
-
-	# Download the meta lists
-	downloader(meta_block_url)
-	if meta_allow_url:
-		downloader(meta_allow_url)
-	elif allow_url:
-		# skip to list processor?
-	# Download from the list
-	for entry in list:
-		# Grab the contents and shove them into a list object
-		downloader(entry)
-
-def processor(output):
-	# Turn the list objects from the various URLs into output useable by DNS
-	# 
 
 # Download the allow list(s) and listify them for later
 allowed_domains = list_downloader(allow_url)
