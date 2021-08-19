@@ -1,23 +1,29 @@
 #!/usr/bin/env python3
 
 # Imports
+import re
 import sys
 import logging
 import requests
 
 # Hard codes, maybe a config file someday
+meta_allow_url = ''
 allow_url = "https://raw.githubusercontent.com/anudeepND/whitelist/master/domains/whitelist.txt"
 meta_block_url = "https://v.firebog.net/hosts/lists.php?type=tick"
 block_list = []
+block_set = set()
 
 install_dir = "/usr/local/etc/pyhole"
 dns_server = "unbound"
 
-logging.basicConfig(filename='example.log', level=logging.DEBUG)
-logging.debug('This message should go to the log file')
-logging.info('So should this')
-logging.warning('And this, too')
-logging.error('And non-ASCII stuff, too, like Øresund and Malmö')
+logging.basicConfig(filename='pyhold.log', level=logging.DEBUG)
+# logging.debug('This message should go to the log file')
+# logging.info('So should this')
+# logging.warning('And this, too')
+# logging.error('And non-ASCII stuff, too, like Øresund and Malmö')
+
+# Let's make a Regular Expression!
+fqdn_regex = re.compile('(?=^.{4,253}$)(^((?!-)[a-zA-Z0-9-]{1,63}(?<!-)\.)+[a-zA-Z]{2,63}$)')
 
 # Try to update the curated white list from github
 
@@ -27,40 +33,49 @@ logging.error('And non-ASCII stuff, too, like Øresund and Malmö')
 # It can then be reused to fetch the list of lists, and the contents of each list
 
 def list_downloader(url):
-	# Downbload requests and return results
-
-	# download the url and handle errors
-	r = requests.get(url)
-	if r.status_code == requests.codes.ok:
-		logging.debug('Looks good, proceeding')
-		return r.text.split()
-	else:
-		logging.error('Looks bad, stopping')
-		sys.exit("Fatal error with downloading")
+    r = requests.get(url)
+    if r.status_code == requests.codes.ok:
+        return r.text.split()
+    else:
+        sys.exit("Fatal error with downloading ",url)
 
 # Download the allow list(s) and listify them for later
-allowed_domains = list_downloader(allow_url)
-print("Tried downloading allowed_domains, got a ",type(allowed_domains))
+try:
+    allowed_domains = list_downloader(allow_url)
+    print(allowed_domains)
+    print(type(allowed_domains))
+except:
+    logging.error('Could not fetch allowed domains')
 
 # Get the list of block lists
-list_of_blocks = list_downloader(meta_block_url)
-print("Tried downloading list_of_blocks, got a ",type(list_of_blocks))
+try:
+    list_of_blocks = list_downloader(meta_block_url)
+    print(list_of_blocks)
+    print(type(list_of_blocks))
+except:
+    logging.error('Could not fetch list of block lists')
 
 # Iterate through the list of block lists
-# Jam the entries into a new deduplicated list
+# Jam the entries into a list for later
 for x in list_of_blocks:
-	block_list.append(list_downloader(x))
-	print("Tried downloading from ",x)
+    block_list.append(list_downloader(x))
 
-# Deduplicate with set
-uniqe_block_list = set(block_list).split()
-print("Tried uniqe stuff")
+logging.debug(block_list)
+print(type(block_list))
 
-# Removed allowed domains
-for y in allowed_domains:
-	uniqe_block_list.remove(y)
-	print("Tried removing allows")
+# Deduplicate and validate (it's later)
+for u in block_list:
+    if fqdn_regex.match(u):
+        block_set.add(u)
+    else:
+        logging.debug("Skipped a domain ",u)
 
+# Validate the allow list and remove matching entries
+for q in allowed_domains:
+    if fqdn_regex.match(q):
+        block_set.remove(q)
+    else:
+        logging.debug("Bad allow list entry ",q)
 
 
 # Try to update the tick_list of "safe" domains to block
