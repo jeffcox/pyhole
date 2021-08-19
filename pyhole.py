@@ -63,25 +63,21 @@ block_list = unlist_block.split()
 
 # Deduplicate and validate (it's later)
 for u in block_list:
-    print("Inspecting ",u)
-    print("It is type ",type(u))
-    #
     m = fqdn_regex.match(u)
-    print("match object ",m)
-    print("match type ",type(m))
-    #
     if m:
-        block_set.add(m.group)
+        block_set.add(u)
     else:
-        logging.debug("Skipped a domain ",u)
+        logging.debug("Skipped a domain")
 
 # Validate the allow list and remove matching entries
 for q in allowed_domains:
     m = fqdn_regex.match(q)
     if m:
-        block_set.remove(m.group)
+        block_set.remove(q)
     else:
-        logging.debug("Bad allow list entry ",q)
+        logging.debug("Bad allow list entry")
+
+logging.debug(block_set)
 
 
 # Try to update the tick_list of "safe" domains to block
