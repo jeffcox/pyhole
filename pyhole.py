@@ -16,7 +16,7 @@ block_set = set()
 install_dir = "/usr/local/etc/pyhole"
 dns_server = "unbound"
 
-logging.basicConfig(filename='pyhold.log', level=logging.DEBUG)
+logging.basicConfig(filename='pyhole.log', level=logging.DEBUG)
 # logging.debug('This message should go to the log file')
 # logging.info('So should this')
 # logging.warning('And this, too')
@@ -42,16 +42,12 @@ def list_downloader(url):
 # Download the allow list(s) and listify them for later
 try:
     allowed_domains = list_downloader(allow_url)
-    print(allowed_domains)
-    print(type(allowed_domains))
 except:
     logging.error('Could not fetch allowed domains')
 
 # Get the list of block lists
 try:
     list_of_blocks = list_downloader(meta_block_url)
-    print(list_of_blocks)
-    print(type(list_of_blocks))
 except:
     logging.error('Could not fetch list of block lists')
 
@@ -60,20 +56,30 @@ except:
 for x in list_of_blocks:
     block_list.append(list_downloader(x))
 
-logging.debug(block_list)
-print(type(block_list))
+# The block list is now a weird list of lists
+# Let's strip it down
+unlist_block = str(block_list)
+block_list = unlist_block.split()
 
 # Deduplicate and validate (it's later)
 for u in block_list:
-    if fqdn_regex.match(u):
-        block_set.add(u)
+    print("Inspecting ",u)
+    print("It is type ",type(u))
+    #
+    m = fqdn_regex.match(u)
+    print("match object ",m)
+    print("match type ",type(m))
+    #
+    if m:
+        block_set.add(m.group)
     else:
         logging.debug("Skipped a domain ",u)
 
 # Validate the allow list and remove matching entries
 for q in allowed_domains:
-    if fqdn_regex.match(q):
-        block_set.remove(q)
+    m = fqdn_regex.match(q)
+    if m:
+        block_set.remove(m.group)
     else:
         logging.debug("Bad allow list entry ",q)
 
