@@ -6,13 +6,14 @@ import sys
 import logging
 import requests
 
-# Hard codes, maybe a config file someday
+# Define variables, maybe a config file someday
 meta_allow_url = ''
 allow_url = "https://raw.githubusercontent.com/anudeepND/whitelist/master/domains/whitelist.txt"
 meta_block_url = "https://v.firebog.net/hosts/lists.php?type=tick"
 block_list = []
 block_set = set()
 
+# This needs to be modular someday
 install_dir = "/usr/local/etc/pyhole"
 dns_server = "unbound"
 
@@ -23,15 +24,11 @@ logging.basicConfig(filename='pyhole.log', level=logging.DEBUG)
 # logging.error('And non-ASCII stuff, too, like Øresund and Malmö')
 
 # Let's make a Regular Expression!
+# https://stackoverflow.com/questions/11809631/
 fqdn_regex = re.compile('(?=^.{4,253}$)(^((?!-)[a-zA-Z0-9-]{1,63}(?<!-)\.)+[a-zA-Z]{2,63}$)')
 
-# Try to update the curated white list from github
-
-# Nope, this should be a function or class or object of some kind
-# Make it generic for downloading lists
-# It should accept n URLs to concatenate
-# It can then be reused to fetch the list of lists, and the contents of each list
-
+# Download text files and turn them into lists
+# Works for lists of URLs and block lists
 def list_downloader(url):
     r = requests.get(url)
     if r.status_code == requests.codes.ok:
@@ -56,16 +53,19 @@ except:
 for x in list_of_blocks:
     block_list.append(list_downloader(x))
 
-# The block list is now a weird list of lists
-# Let's strip it down
+# The block list is now a weird list of lists, let's strip it down
 unlist_block = str(block_list)
 block_list = unlist_block.split()
 
 # Deduplicate and validate (it's later)
+# regex.match returns an object, not just a bool
 for u in block_list:
     m = fqdn_regex.match(u)
     if m:
         block_set.add(u)
+
+# We need to fix entries that have 0.0.0.0 mashed together with the FQDN
+# They look like this: 0.0.0.0bad.domain
 
 # Validate the allow list and remove matching entries
 for q in allowed_domains:
@@ -74,52 +74,16 @@ for q in allowed_domains:
         try:
             block_set.remove(q)
         except:
-            logging.debug("dupe")
+            print("Allowed domain ", q, " was not in the block list")
     else:
         logging.debug("Bad allow list entry")
 
+# Format the deduplicated, allowified list into something unbound likes
+# awk command from bash: awk '{print "local-zone: \""$1"\" redirect\nlocal-data: \""$1" A 0.0.0.0\""}' ${adList} > ${piholeDir}/ads4.conf
+
 print("Made it to the end!")
 print("Here's what's in block_set:")
-print(block_set)
+with open('output.txt','a') as f:
+    for entry in block_set:
+        f.write(entry)
 print(type(block_set))
-
-
-# Try to update the tick_list of "safe" domains to block
-
-# Retrieve blocklist URLs and parse domains from adlists.list
-
-# Define options for when retrieving blocklists
-
-# Download specified URL and perform checks on HTTP status and file content
-
-# Parse source files into domains format
-
-# Create (unfiltered) "Matter and Light" consolidated list
-
-# Parse consolidated list into (filtered, unique) domains-only format
-
-# Whitelist user-defined domains
-
-# Output count of blacklisted domains and regex filters
-
-# Parse list of domains into hosts format
-
-# Create "localhost" entries into hosts format
-
-# Create primary blacklist entries
-
-# Create user-added blacklist entries
-
-# Trap Ctrl-C
-
-# Clean up after Gravity upon exit or cancellation
-
-# Convert the contets into a format unbound can read
-
-# Trap Ctrl-C
-
-# Let's just fuckin do it.
-
-# Perform when downloading blocklists, or modifying the whitelist
-
-# Perform when downloading blocklists, or modifying the white/blacklist (not wildcards)
